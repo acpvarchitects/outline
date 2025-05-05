@@ -230,6 +230,8 @@ export enum UserPreference {
   SortCommentsByOrderInDocument = "sortCommentsByOrderInDocument",
   /** Whether smart text replacements should be enabled. */
   EnableSmartText = "enableSmartText",
+  /** Whether to display documents in card view or list view in collections. */
+  CollectionViewMode = "collectionViewMode",
 }
 
 export type UserPreferences = { [key in UserPreference]?: boolean };

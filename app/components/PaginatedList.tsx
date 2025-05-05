@@ -2,13 +2,22 @@ import isEqual from "lodash/isEqual";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Waypoint } from "react-waypoint";
+import styled from "styled-components";
 import { Pagination } from "@shared/constants";
+import { UserPreference } from "@shared/types";
 import ArrowKeyNavigation from "~/components/ArrowKeyNavigation";
 import DelayedMount from "~/components/DelayedMount";
 import PlaceholderList from "~/components/List/Placeholder";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import usePrevious from "~/hooks/usePrevious";
 import { dateToHeading } from "~/utils/date";
+
+const CardGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-gap: 16px;
+  margin: 8px 0;
+`;
 
 /**
  * Base interface for items that can be paginated
@@ -34,11 +43,11 @@ interface Props<T extends PaginatedItem>
    * @param options Pagination and other query options
    */
   fetch?: (
-    options: Record<string, any> | undefined
+    options: Record<string, unknown> | undefined
   ) => Promise<unknown[] | undefined> | undefined;
 
   /** Additional options to pass to the fetch function */
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 
   /** Optional header content to display above the list */
   heading?: React.ReactNode;
@@ -77,7 +86,7 @@ interface Props<T extends PaginatedItem>
    * Function to render section headings (typically date-based)
    * @param name The heading text or element to render
    */
-  renderHeading?: (name: React.ReactElement<any> | string) => React.ReactNode;
+  renderHeading?: (name: React.ReactElement | string) => React.ReactNode;
 
   /**
    * Handler for escape key press
@@ -145,20 +154,23 @@ const PaginatedList = <T extends PaginatedItem>({
     setError(undefined);
 
     try {
+      const limitValue =
+        typeof limit === "number" ? limit : Pagination.defaultLimit;
+
       const results = await fetch({
-        limit,
+        limit: limitValue,
         offset,
         ...options,
       });
 
       if (offset !== 0) {
-        setRenderCount((prevCount) => prevCount + limit);
+        setRenderCount((prevCount) => prevCount + limitValue);
       }
 
-      if (results && (results.length === 0 || results.length < limit)) {
+      if (results && (results.length === 0 || results.length < limitValue)) {
         setAllowLoadMore(false);
       } else {
-        setOffset((prevOffset) => prevOffset + limit);
+        setOffset((prevOffset) => prevOffset + limitValue);
       }
 
       setIsFetchingInitial(false);
@@ -203,7 +215,7 @@ const PaginatedList = <T extends PaginatedItem>({
     if (fetch) {
       void fetchResults();
     }
-  }, [fetch]);
+  }, [fetch, fetchResults]);
 
   // Handle updates to fetch or options
   React.useEffect(() => {
@@ -260,6 +272,19 @@ const PaginatedList = <T extends PaginatedItem>({
       >
         {() => {
           let previousHeading = "";
+          const isCardView = user?.getPreference(
+            UserPreference.CollectionViewMode,
+            false
+          );
+
+          if (isCardView) {
+            return (
+              <CardGrid>
+                {itemsToRender.map((item, index) => renderItem(item, index))}
+              </CardGrid>
+            );
+          }
+
           return itemsToRender.map((item, index) => {
             const children = renderItem(item, index);
 

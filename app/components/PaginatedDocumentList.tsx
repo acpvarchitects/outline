@@ -1,14 +1,22 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { UserPreference } from "@shared/types";
 import Document from "~/models/Document";
+import DocumentCardMUI from "~/components/DocumentCardMUI";
 import DocumentListItem from "~/components/DocumentListItem";
 import Error from "~/components/List/Error";
 import PaginatedList from "~/components/PaginatedList";
+import useCurrentUser from "~/hooks/useCurrentUser";
+
+type FetchOptions = {
+  collectionId?: string;
+  [key: string]: any;
+};
 
 type Props = {
   documents: Document[];
-  fetch: (options: any) => Promise<Document[] | undefined>;
-  options?: Record<string, any>;
+  fetch: (options: FetchOptions) => Promise<Document[] | undefined>;
+  options?: FetchOptions;
   heading?: React.ReactNode;
   empty?: JSX.Element;
   showParentDocuments?: boolean;
@@ -32,6 +40,11 @@ const PaginatedDocumentList = React.memo<Props>(function PaginatedDocumentList({
   ...rest
 }: Props) {
   const { t } = useTranslation();
+  const user = useCurrentUser();
+  const isCardView = user.getPreference(
+    UserPreference.CollectionViewMode,
+    false
+  );
 
   return (
     <PaginatedList<Document>
@@ -42,18 +55,31 @@ const PaginatedDocumentList = React.memo<Props>(function PaginatedDocumentList({
       fetch={fetch}
       options={options}
       renderError={(props) => <Error {...props} />}
-      renderItem={(item, _index) => (
-        <DocumentListItem
-          key={item.id}
-          document={item}
-          showPin={!!options?.collectionId}
-          showParentDocuments={showParentDocuments}
-          showCollection={showCollection}
-          showPublished={showPublished}
-          showTemplate={showTemplate}
-          showDraft={showDraft}
-        />
-      )}
+      renderItem={(item, _index) =>
+        isCardView ? (
+          <DocumentCardMUI
+            key={item.id}
+            document={item}
+            showPin={!!options?.collectionId}
+            showParentDocuments={showParentDocuments}
+            showCollection={showCollection}
+            showPublished={showPublished}
+            showTemplate={showTemplate}
+            showDraft={showDraft}
+          />
+        ) : (
+          <DocumentListItem
+            key={item.id}
+            document={item}
+            showPin={!!options?.collectionId}
+            showParentDocuments={showParentDocuments}
+            showCollection={showCollection}
+            showPublished={showPublished}
+            showTemplate={showTemplate}
+            showDraft={showDraft}
+          />
+        )
+      }
       {...rest}
     />
   );

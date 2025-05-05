@@ -3,7 +3,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import {
   useParams,
-  Switch,
+  Switch as RouterSwitch,
   Route,
   useHistory,
   useRouteMatch,
@@ -14,7 +14,7 @@ import styled from "styled-components";
 import breakpoint from "styled-components-breakpoint";
 import Icon, { IconTitleWrapper } from "@shared/components/Icon";
 import { s } from "@shared/styles";
-import { StatusFilter } from "@shared/types";
+import { StatusFilter, UserPreference } from "@shared/types";
 import { colorPalette } from "@shared/utils/collections";
 import Collection from "~/models/Collection";
 import { Action } from "~/components/Actions";
@@ -28,10 +28,12 @@ import PaginatedDocumentList from "~/components/PaginatedDocumentList";
 import PinnedDocuments from "~/components/PinnedDocuments";
 import PlaceholderText from "~/components/PlaceholderText";
 import Scene from "~/components/Scene";
+import Switch from "~/components/Switch";
 import Tab from "~/components/Tab";
 import Tabs from "~/components/Tabs";
 import { editCollection } from "~/actions/definitions/collections";
 import useCommandBarActions from "~/hooks/useCommandBarActions";
+import useCurrentUser from "~/hooks/useCurrentUser";
 import { useLastVisitedPath } from "~/hooks/useLastVisitedPath";
 import { useLocationSidebarContext } from "~/hooks/useLocationSidebarContext";
 import usePersistedState from "~/hooks/usePersistedState";
@@ -79,6 +81,7 @@ const CollectionScene = observer(function _CollectionScene() {
   const can = usePolicy(collection);
 
   const { pins, count } = usePinnedDocuments(urlId, collection?.id);
+  const user = useCurrentUser();
   const [collectionTab, setCollectionTab] = usePersistedState<CollectionPath>(
     `collection-tab:${collection?.id}`,
     collection?.hasDescription
@@ -87,6 +90,19 @@ const CollectionScene = observer(function _CollectionScene() {
     {
       listen: false,
     }
+  );
+
+  const handleViewToggle = React.useCallback(
+    async (ev: React.ChangeEvent<HTMLInputElement>) => {
+      if (user) {
+        user.setPreference(
+          UserPreference.CollectionViewMode,
+          ev.target.checked
+        );
+        await user.save();
+      }
+    },
+    [user]
   );
 
   const handleIconChange = React.useCallback(
@@ -213,6 +229,18 @@ const CollectionScene = observer(function _CollectionScene() {
               )}
             </IconTitleWrapper>
             {collection.name}
+            <ViewToggle>
+              <Switch
+                id="view-toggle"
+                name="view-toggle"
+                label={t("Card view")}
+                checked={user.getPreference(
+                  UserPreference.CollectionViewMode,
+                  false
+                )}
+                onChange={handleViewToggle}
+              />
+            </ViewToggle>
           </CollectionHeading>
 
           <PinnedDocuments
@@ -246,7 +274,7 @@ const CollectionScene = observer(function _CollectionScene() {
                 </>
               )}
             </Tabs>
-            <Switch>
+            <RouterSwitch>
               <Route path={collectionPath(collection.path)} exact>
                 <Redirect
                   to={{
@@ -381,7 +409,7 @@ const CollectionScene = observer(function _CollectionScene() {
                   />
                 </Route>
               )}
-            </Switch>
+            </RouterSwitch>
           </Documents>
         </CenteredContent>
       </DropToImport>
@@ -417,6 +445,14 @@ const CollectionHeading = styled(Heading)`
 
   ${breakpoint("tablet")`
     margin-left: 0;
+  `}
+`;
+
+const ViewToggle = styled.div`
+  margin-left: auto;
+
+  ${breakpoint("tablet")`
+    margin-right: 8px;
   `}
 `;
 
