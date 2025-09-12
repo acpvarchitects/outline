@@ -40,4 +40,5 @@ export const UserPreferenceDefaults: UserPreferences = {
   [UserPreference.CodeBlockLineNumers]: true,
   [UserPreference.SortCommentsByOrderInDocument]: true,
   [UserPreference.EnableSmartText]: true,
+  [UserPreference.CollectionViewMode]: false,
 };

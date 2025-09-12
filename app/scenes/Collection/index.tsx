@@ -14,7 +14,7 @@ import styled from "styled-components";
 import breakpoint from "styled-components-breakpoint";
 import { IconTitleWrapper } from "@shared/components/Icon";
 import { s } from "@shared/styles";
-import { StatusFilter } from "@shared/types";
+import { StatusFilter, UserPreference } from "@shared/types";
 import { colorPalette } from "@shared/utils/collections";
 import Collection from "~/models/Collection";
 import { Action } from "~/components/Actions";
@@ -38,6 +38,8 @@ import usePersistedState from "~/hooks/usePersistedState";
 import { usePinnedDocuments } from "~/hooks/usePinnedDocuments";
 import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
+import useCurrentUser from "~/hooks/useCurrentUser";
+import Button from "~/components/Button";
 import { NotFoundError } from "~/utils/errors";
 import { collectionPath, updateCollectionPath } from "~/utils/routeHelpers";
 import Error404 from "../Errors/Error404";
@@ -67,6 +69,7 @@ const CollectionScene = observer(function _CollectionScene() {
   const location = useLocation();
   const { t } = useTranslation();
   const { documents, collections, shares, ui } = useStores();
+  const user = useCurrentUser();
   const [error, setError] = useState<Error | undefined>();
   const currentPath = location.pathname;
   const [, setLastVisitedPath] = useLastVisitedPath();
@@ -128,7 +131,7 @@ const CollectionScene = observer(function _CollectionScene() {
     }
 
     void fetchData();
-  }, []);
+  }, [collections, id]);
 
   useEffect(() => {
     if (collection) {
@@ -151,6 +154,14 @@ const CollectionScene = observer(function _CollectionScene() {
   const fallbackIcon = collection ? (
     <CollectionIcon collection={collection} size={40} expanded />
   ) : null;
+
+  const isCardView = user.getPreference(UserPreference.CollectionViewMode);
+
+  const handleViewModeToggle = useCallback(async () => {
+    const newViewMode = !isCardView;
+    user.setPreference(UserPreference.CollectionViewMode, newViewMode);
+    await user.save();
+  }, [user, isCardView]);
 
   const tabProps = (path: CollectionPath) => ({
     exact: true,
@@ -254,6 +265,11 @@ const CollectionScene = observer(function _CollectionScene() {
                 </>
               )}
             </Tabs>
+            <ViewModeToggle>
+              <Button onClick={handleViewModeToggle} neutral small>
+                {isCardView ? "List View" : "Card View"}
+              </Button>
+            </ViewModeToggle>
             <Switch>
               <Route path={collectionPath(collection.path)} exact>
                 <Redirect
@@ -299,6 +315,7 @@ const CollectionScene = observer(function _CollectionScene() {
                       options={{
                         collectionId: collection.id,
                       }}
+                      viewMode={isCardView ? "card" : "list"}
                     />
                   </Route>
                   <Route
@@ -313,6 +330,7 @@ const CollectionScene = observer(function _CollectionScene() {
                       options={{
                         collectionId: collection.id,
                       }}
+                      viewMode={isCardView ? "card" : "list"}
                     />
                   </Route>
                   <Route
@@ -331,6 +349,7 @@ const CollectionScene = observer(function _CollectionScene() {
                         collectionId: collection.id,
                       }}
                       showPublished
+                      viewMode={isCardView ? "card" : "list"}
                     />
                   </Route>
                   <Route
@@ -348,6 +367,7 @@ const CollectionScene = observer(function _CollectionScene() {
                       options={{
                         collectionId: collection.id,
                       }}
+                      viewMode={isCardView ? "card" : "list"}
                     />
                   </Route>
                   <Route
@@ -367,6 +387,7 @@ const CollectionScene = observer(function _CollectionScene() {
                         direction: collection.sort.direction,
                       }}
                       showParentDocuments
+                      viewMode={isCardView ? "card" : "list"}
                     />
                   </Route>
                 </>
@@ -386,6 +407,7 @@ const CollectionScene = observer(function _CollectionScene() {
                       statusFilter: [StatusFilter.Archived],
                     }}
                     showParentDocuments
+                    viewMode={isCardView ? "card" : "list"}
                   />
                 </Route>
               )}
@@ -426,6 +448,12 @@ const CollectionHeading = styled(Heading)`
   ${breakpoint("tablet")`
     margin-left: 0;
   `}
+`;
+
+const ViewModeToggle = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
 `;
 
 export default KeyedCollection;
